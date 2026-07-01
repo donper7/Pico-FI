@@ -1,186 +1,199 @@
 # Pico-FI Quicksort Example
 
-This repository contains a reproducible Raspberry Pi Pico benchmark example using OpenOCD and GDB. The example loads and runs `quicksort.elf` on the Raspberry Pi Pico, then verifies that the program produced the correct result by reading a checksum directly from memory.
+This repository provides a minimal, reproducible Raspberry Pi Pico benchmark example using **OpenOCD** and **GDB**.
 
-The goal of this example is to allow another researcher to clone the repository, connect a Pico through a debug probe, run one script, and verify that the benchmark works correctly.
+The example loads `quicksort.elf` onto an RP2040-based board, runs the benchmark, and verifies the result by reading two symbols directly from SRAM:
 
-## Overview
-
-The current example uses a Quicksort benchmark compiled into:
-
-quicksort.elf
-
-The benchmark exposes two symbols in memory:
-
+```c
 volatile uint32_t benchmark_done;
 volatile uint32_t benchmark_result;
+```
 
-When the benchmark finishes running, it stores a checksum in `benchmark_result` and sets:
+When the benchmark finishes, it sets:
 
+```c
 benchmark_done = 1;
+```
 
-The script `run_quicksort.sh` uses GDB to:
+and stores the computed checksum in:
 
-1. Connect to the Pico through OpenOCD.
-2. Reset and halt the target.
-3. Load `quicksort.elf`.
-4. Run the benchmark.
-5. Stop when `benchmark_done` changes.
-6. Read the checksum from `benchmark_result`.
-7. Compare the observed checksum against the expected checksum.
-8. Print `PASS` or `FAIL`.
+```c
+benchmark_result;
+```
 
-This avoids parsing serial output and makes the result easy to verify through memory.
+This allows the benchmark result to be checked through GDB without relying on serial output.
+
+---
+
+## What This Example Demonstrates
+
+The script `run_quicksort.sh` automatically:
+
+1. Connects to the Pico through OpenOCD.
+2. Resets and halts the target.
+3. Loads `quicksort.elf`.
+4. Runs the Quicksort benchmark.
+5. Waits for `benchmark_done` to become `1`.
+6. Reads `benchmark_result` from memory.
+7. Compares the observed checksum against the expected checksum.
+8. Prints `PASS`, `FAIL`, `TIMEOUT`, or `ERROR`.
+
+This is the first step toward a debugger-based fault injection workflow where benchmark state can be observed directly from memory.
+
+---
 
 ## Hardware Requirements
 
-The example requires:
+You will need:
 
 * Raspberry Pi Pico or another RP2040-based board
 * Raspberry Pi Debug Probe or another CMSIS-DAP compatible debug probe
-* USB connection from the host computer to the debug probe
+* USB connection to the host computer
 * Linux or WSL Ubuntu environment
 
-This project was tested using a Raspberry Pi Pico, Raspberry Pi Debug Probe, and WSL Ubuntu.
+This example was tested using a Raspberry Pi Pico, Raspberry Pi Debug Probe, and WSL Ubuntu.
 
-## Software Dependencies
+---
 
-The following tools must be installed:
+## Software Requirements
 
+The following tools are required:
+
+```bash
 openocd
 gdb-multiarch
 arm-none-eabi-nm
 timeout
+```
 
-You can check that the tools are available with:
+You can check your installed versions with:
 
+```bash
 openocd --version
 gdb-multiarch --version
 arm-none-eabi-nm --version
 timeout --version
+```
 
-The tested environment used:
+Tested setup:
 
+```text
 GDB: gdb-multiarch 9.2
 Target: Raspberry Pi Pico / RP2040
 Debug interface: CMSIS-DAP
+```
 
-Your exact versions may differ. If reproducing this work, record your versions using the commands above.
+Other versions may work, but researchers reproducing this example should record their tool versions.
 
-## Files Needed for the Example
+---
 
-The main files for this example are:
+## Repository Files
 
+The important files are:
+
+```text
 README.md
 run_quicksort.sh
 quicksort.elf
+```
 
-`run_quicksort.sh` is the script that runs the benchmark and verifies the checksum.
+`run_quicksort.sh` runs and verifies the benchmark.
 
-`quicksort.elf` is the compiled benchmark program that is loaded onto the Pico.
+`quicksort.elf` is the compiled Quicksort program loaded onto the Pico.
 
-## How to Run the Example
+---
+
+## Running the Example
 
 This example uses two terminals.
 
 ### Terminal 1: Start OpenOCD
 
-First, connect the Raspberry Pi Pico and debug probe to your computer.
+Connect the Pico and debug probe, then run:
 
-Then start OpenOCD:
-
+```bash
 sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg
+```
 
-Leave this terminal open. OpenOCD should remain running while the benchmark script executes.
+Leave this terminal open.
 
-OpenOCD provides the GDB server at:
+OpenOCD should start a GDB server at:
 
+```text
 127.0.0.1:3333
+```
 
-### Terminal 2: Run the Quicksort Benchmark
+### Terminal 2: Run the Benchmark
 
-In a second terminal, go to the repository folder:
+From the repository directory:
 
-cd ~/Donovan/pico/Pico-FI
-
-Make sure the script is executable:
-
+```bash
 chmod +x run_quicksort.sh
-
-Run the example:
-
 ./run_quicksort.sh
+```
+
+---
 
 ## Expected Output
 
-A successful run should look similar to this:
+A successful run should include:
 
-[INFO] Checking dependencies...
-[INFO] Checking for OpenOCD on 127.0.0.1:3333...
-[INFO] OpenOCD connection detected.
-[INFO] Finding benchmark symbols...
-[INFO] benchmark_done address:   0x200005ec
-[INFO] benchmark_result address: 0x200005f0
-[INFO] Expected checksum:        2825881671
-[INFO] Loading and running quicksort.elf...
+```text
 PICO_DONE=1
 PICO_CHECKSUM=2825881671
 
-----------------------------------------
-Quicksort verification
-----------------------------------------
-benchmark_done:    1
-Expected checksum: 2825881671
-Observed checksum: 2825881671
-----------------------------------------
 [PASS] Quicksort completed and produced the correct checksum.
-
-The most important lines are:
-
-PICO_DONE=1
-PICO_CHECKSUM=2825881671
-[PASS] Quicksort completed and produced the correct checksum.
-
-These lines confirm that the benchmark finished and produced the expected checksum.
-
-## Verification Method
+```
 
 The expected checksum for the current `quicksort.elf` is:
 
+```text
 2825881671
+```
 
-The script classifies the result as follows:
+A passing result means:
 
-PASS:
-    benchmark_done == 1
-    benchmark_result == expected checksum
+```text
+benchmark_done   == 1
+benchmark_result == 2825881671
+```
 
-FAIL:
-    benchmark_done == 1
-    benchmark_result != expected checksum
+---
 
-TIMEOUT:
-    GDB does not observe benchmark_done before the timeout
+## Result Classification
 
-ERROR:
-    OpenOCD, GDB, ELF loading, symbol lookup, or memory reading fails
+The script classifies each run as follows:
 
-This memory-based verification method is more reliable than parsing serial output because GDB reads the benchmark result directly from the Pico memory.
+| Result    | Meaning                                                             |
+| --------- | ------------------------------------------------------------------- |
+| `PASS`    | The benchmark finished and the checksum matched.                    |
+| `FAIL`    | The benchmark finished, but the checksum did not match.             |
+| `TIMEOUT` | GDB did not observe `benchmark_done = 1` before the timeout.        |
+| `ERROR`   | OpenOCD, GDB, ELF loading, symbol lookup, or memory reading failed. |
 
-## Running Interactively with GDB
+This memory-based verification method is useful because it checks the benchmark result directly from Pico memory instead of parsing serial output.
 
-The example can also be run manually.
+---
 
-First, start OpenOCD in one terminal:
+## Manual GDB Run
 
+The benchmark can also be run manually.
+
+Start OpenOCD in one terminal:
+
+```bash
 sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg
+```
 
-Then open GDB in another terminal:
+Then start GDB in another terminal:
 
+```bash
 gdb-multiarch quicksort.elf
+```
 
-Inside GDB, run:
+Inside GDB:
 
+```gdb
 target remote localhost:3333
 monitor reset halt
 load
@@ -196,67 +209,89 @@ continue
 
 p *(unsigned int *)$done_addr
 p *(unsigned int *)$result_addr
+```
 
-A correct run should show that `benchmark_done` is `1` and that `benchmark_result` matches the expected checksum:
+A correct run should show:
 
+```text
 benchmark_done = 1
 benchmark_result = 2825881671
+```
 
-If GDB cannot determine the symbol types, use `arm-none-eabi-nm` to find the addresses manually:
+If GDB cannot resolve the symbols, find their addresses with:
 
+```bash
 arm-none-eabi-nm -n quicksort.elf | grep benchmark
+```
 
-Example output:
+Example:
 
+```text
 200005ec B benchmark_done
 200005f0 B benchmark_result
+```
 
 Then read the values directly in GDB:
 
+```gdb
 p *(unsigned int *)0x200005ec
 p *(unsigned int *)0x200005f0
+```
+
+---
 
 ## Troubleshooting
 
 ### OpenOCD is not running
 
-If the script prints:
+Start OpenOCD in a separate terminal:
 
-[FAIL] OpenOCD is not running.
-
-start OpenOCD in another terminal:
-
+```bash
 sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg
+```
 
-Then run the script again:
+Then rerun:
 
+```bash
 ./run_quicksort.sh
+```
 
 ### GDB times out
 
-If GDB times out, the benchmark may not have reached `benchmark_done = 1`. Check that:
+Check that:
 
 * The Pico is connected.
 * The debug probe is connected.
 * OpenOCD is still running.
-* The correct `quicksort.elf` file is present.
-* The benchmark contains the `benchmark_done` and `benchmark_result` symbols.
+* `quicksort.elf` is present.
+* The benchmark includes `benchmark_done` and `benchmark_result`.
 
 ### Checksum mismatch
 
-If the checksum does not match, then the benchmark executed but produced an unexpected result. This may indicate that the ELF file changed, the expected checksum needs to be updated, or the benchmark output is incorrect.
+A checksum mismatch means the program finished, but the result was not the expected value.
+
+This may happen if:
+
+* `quicksort.elf` changed.
+* The expected checksum needs to be updated.
+* The benchmark output is incorrect.
 
 ### GDB detach issue
 
-Some older versions of `gdb-multiarch`, including GDB 9.2, may crash when detaching from the RP2040 target. The script avoids explicitly calling `detach` or `quit` to prevent this issue.
+Some older versions of `gdb-multiarch`, including GDB 9.2, may crash when detaching from the RP2040 target.
+
+To avoid this, the script does not explicitly call `detach` or `quit`.
+
+---
 
 ## Current Status
 
-The current quicksort example has been tested successfully. The observed checksum matches the expected checksum:
+The current Quicksort example has been tested successfully.
 
+```text
 Expected checksum: 2825881671
 Observed checksum: 2825881671
+Result: PASS
+```
 
-This confirms that the benchmark can be loaded, run, and verified through GDB using memory-based checking.
-
-
+This confirms that the benchmark can be loaded, executed, and verified through GDB using memory-based checking.
