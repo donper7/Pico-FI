@@ -1,0 +1,3 @@
+*.log
+sram_symbols_*.txt
+target_regions_*.csv
