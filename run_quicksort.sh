@@ -10,6 +10,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ELF_FILE="${ELF_FILE:-${SCRIPT_DIR}/quicksort.elf}"
 
 EXPECTED_CHECKSUM="${EXPECTED_CHECKSUM:-2825881671}"
+EXPECTED_SORTED_ARRAY="${EXPECTED_SORTED_ARRAY:-1 3 4 5 7 8 9 10 12}"
+
+ARRAY_SIZE="${ARRAY_SIZE:-9}"
 
 OPENOCD_HOST="${OPENOCD_HOST:-127.0.0.1}"
 OPENOCD_PORT="${OPENOCD_PORT:-3333}"
@@ -135,9 +138,15 @@ DONE_ADDRESS="$(find_symbol_address benchmark_done)" ||
 RESULT_ADDRESS="$(find_symbol_address benchmark_result)" ||
     fail "Could not find symbol: benchmark_result"
 
+DATA_ADDRESS="$(find_symbol_address data)" ||
+    fail "Could not find symbol: data"
+
 info "benchmark_done address:   ${DONE_ADDRESS}"
 info "benchmark_result address: ${RESULT_ADDRESS}"
+info "data array address:       ${DATA_ADDRESS}"
+info "Array size:               ${ARRAY_SIZE}"
 info "Expected checksum:        ${EXPECTED_CHECKSUM}"
+info "Expected sorted array:    ${EXPECTED_SORTED_ARRAY}"
 
 # ---------------------------------------------------------------------------
 # Prepare GDB log and command file
@@ -160,6 +169,7 @@ monitor reset halt
 
 set \$done_addr = ${DONE_ADDRESS}
 set \$result_addr = ${RESULT_ADDRESS}
+set \$data_addr = ${DATA_ADDRESS}
 
 set *(unsigned int *)\$done_addr = 0
 
@@ -171,6 +181,18 @@ set \$observed_result = *(unsigned int *)\$result_addr
 
 printf "PICO_DONE=%u\n", \$observed_done
 printf "PICO_CHECKSUM=%u\n", \$observed_result
+
+printf "PICO_SORTED_ARRAY="
+set \$i = 0
+while \$i < ${ARRAY_SIZE}
+    set \$value = *(int *)(\$data_addr + (\$i * 4))
+    printf "%d", \$value
+    set \$i = \$i + 1
+    if \$i < ${ARRAY_SIZE}
+        printf " "
+    end
+end
+printf "\n"
 
 delete 1
 monitor halt
@@ -222,6 +244,18 @@ OBSERVED_CHECKSUM="$(
     ' "${GDB_LOG}"
 )"
 
+OBSERVED_SORTED_ARRAY="$(
+    awk '
+        /^PICO_SORTED_ARRAY=/ {
+            sub(/^PICO_SORTED_ARRAY=/, "")
+            value=$0
+        }
+        END {
+            print value
+        }
+    ' "${GDB_LOG}"
+)"
+
 # ---------------------------------------------------------------------------
 # Handle GDB failures
 # ---------------------------------------------------------------------------
@@ -231,7 +265,7 @@ if [[ "${GDB_EXIT_STATUS}" -eq 124 ]]; then
 fi
 
 if [[ "${GDB_EXIT_STATUS}" -ne 0 ]]; then
-    if [[ -n "${OBSERVED_DONE}" && -n "${OBSERVED_CHECKSUM}" ]]; then
+    if [[ -n "${OBSERVED_DONE}" && -n "${OBSERVED_CHECKSUM}" && -n "${OBSERVED_SORTED_ARRAY}" ]]; then
         warn "GDB exited with status ${GDB_EXIT_STATUS} after producing a complete benchmark result."
     else
         fail "GDB failed with exit status ${GDB_EXIT_STATUS}. See ${GDB_LOG}."
@@ -244,6 +278,9 @@ fi
 [[ -n "${OBSERVED_CHECKSUM}" ]] ||
     fail "GDB did not report benchmark_result."
 
+[[ -n "${OBSERVED_SORTED_ARRAY}" ]] ||
+    fail "GDB did not report the sorted array."
+
 # ---------------------------------------------------------------------------
 # Verify benchmark output
 # ---------------------------------------------------------------------------
@@ -252,9 +289,12 @@ echo
 echo "----------------------------------------"
 echo "Quicksort verification"
 echo "----------------------------------------"
-echo "benchmark_done:    ${OBSERVED_DONE}"
-echo "Expected checksum: ${EXPECTED_CHECKSUM}"
-echo "Observed checksum: ${OBSERVED_CHECKSUM}"
+echo "benchmark_done:        ${OBSERVED_DONE}"
+echo "Expected checksum:     ${EXPECTED_CHECKSUM}"
+echo "Observed checksum:     ${OBSERVED_CHECKSUM}"
+echo
+echo "Expected sorted array: ${EXPECTED_SORTED_ARRAY}"
+echo "Observed sorted array: ${OBSERVED_SORTED_ARRAY}"
 echo "----------------------------------------"
 
 if [[ "${OBSERVED_DONE}" != "1" ]]; then
@@ -265,4 +305,8 @@ if [[ "${OBSERVED_CHECKSUM}" != "${EXPECTED_CHECKSUM}" ]]; then
     fail "Quicksort checksum does not match the expected value."
 fi
 
-pass "Quicksort completed and produced the correct checksum."
+if [[ "${OBSERVED_SORTED_ARRAY}" != "${EXPECTED_SORTED_ARRAY}" ]]; then
+    fail "Quicksort sorted array does not match the expected sorted array."
+fi
+
+pass "Quicksort completed, produced the correct checksum, and sorted the array correctly."
