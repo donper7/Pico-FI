@@ -18,6 +18,14 @@ OPENOCD_HOST="${OPENOCD_HOST:-127.0.0.1}"
 OPENOCD_PORT="${OPENOCD_PORT:-3333}"
 
 GDB_TIMEOUT="${GDB_TIMEOUT:-30}"
+GDB_REMOTE_TIMEOUT="${GDB_REMOTE_TIMEOUT:-20}"
+
+# Delay after detecting OpenOCD. This helps avoid first-run connection races.
+OPENOCD_SETTLE_DELAY="${OPENOCD_SETTLE_DELAY:-1}"
+
+# Delay between reset/load operations inside OpenOCD, in milliseconds.
+OPENOCD_RESET_SLEEP_MS="${OPENOCD_RESET_SLEEP_MS:-500}"
+OPENOCD_POST_LOAD_SLEEP_MS="${OPENOCD_POST_LOAD_SLEEP_MS:-200}"
 
 GDB_LOG="${SCRIPT_DIR}/gdb_quicksort.log"
 GDB_COMMAND_FILE=""
@@ -84,6 +92,32 @@ find_symbol_address()
     printf '0x%s\n' "${symbol_address}"
 }
 
+gdb_log_has_first_run_disconnect()
+{
+    grep -qiE \
+        'Remote communication error|Target disconnected|Connection reset by peer|Remote connection closed' \
+        "${GDB_LOG}"
+}
+
+run_gdb_once()
+{
+    local attempt_label="$1"
+
+    {
+        echo
+        echo "----- GDB attempt: ${attempt_label} -----"
+
+        timeout "${GDB_TIMEOUT}" \
+            gdb-multiarch \
+            --batch \
+            --quiet \
+            -x "${GDB_COMMAND_FILE}" \
+            "${ELF_FILE}"
+    } 2>&1 | tee -a "${GDB_LOG}"
+
+    return "${PIPESTATUS[0]}"
+}
+
 # ---------------------------------------------------------------------------
 # Cleanup registration
 # ---------------------------------------------------------------------------
@@ -125,6 +159,8 @@ Then run this script again."
 fi
 
 info "OpenOCD connection detected."
+info "Waiting ${OPENOCD_SETTLE_DELAY} second(s) for OpenOCD/GDB server to settle..."
+sleep "${OPENOCD_SETTLE_DELAY}"
 
 # ---------------------------------------------------------------------------
 # Find benchmark symbols
@@ -160,12 +196,18 @@ cat >"${GDB_COMMAND_FILE}" <<EOF
 set pagination off
 set confirm off
 set verbose off
+set remotetimeout ${GDB_REMOTE_TIMEOUT}
 
 target extended-remote ${OPENOCD_HOST}:${OPENOCD_PORT}
 
 monitor reset halt
+monitor sleep ${OPENOCD_RESET_SLEEP_MS}
+
 load
+monitor sleep ${OPENOCD_POST_LOAD_SLEEP_MS}
+
 monitor reset halt
+monitor sleep ${OPENOCD_POST_LOAD_SLEEP_MS}
 
 set \$done_addr = ${DONE_ADDRESS}
 set \$result_addr = ${RESULT_ADDRESS}
@@ -194,8 +236,9 @@ while \$i < ${ARRAY_SIZE}
 end
 printf "\n"
 
-delete 1
+delete
 monitor halt
+disconnect
 EOF
 
 # ---------------------------------------------------------------------------
@@ -206,15 +249,16 @@ info "Loading and running quicksort.elf..."
 
 set +e
 
-timeout "${GDB_TIMEOUT}" \
-    gdb-multiarch \
-    --batch \
-    --quiet \
-    -x "${GDB_COMMAND_FILE}" \
-    "${ELF_FILE}" \
-    2>&1 | tee "${GDB_LOG}"
+run_gdb_once "1"
+GDB_EXIT_STATUS=$?
 
-GDB_EXIT_STATUS=${PIPESTATUS[0]}
+if [[ "${GDB_EXIT_STATUS}" -ne 0 ]] && gdb_log_has_first_run_disconnect; then
+    warn "First GDB connection dropped. Retrying once after reinitializing the target connection..."
+    sleep "${OPENOCD_SETTLE_DELAY}"
+
+    run_gdb_once "2"
+    GDB_EXIT_STATUS=$?
+fi
 
 set -e
 
