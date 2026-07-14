@@ -111,13 +111,10 @@ Expected checksum: 2825881671
 Observed checksum: 2825881671
 ----------------------------------------
 [PASS] Quicksort completed and produced the correct checksum.
-```
 
 The expected checksum for the current `quicksort.elf` is:
 
-
 2825881671
-
 
 ## Example 2: Profile Quicksort Program State
 
@@ -125,9 +122,7 @@ The second example does not inject faults. Instead, it gathers program informati
 
 Run:
 
-
 ./run_quicksort_profile.sh
-
 
 This script reports:
 
@@ -155,11 +150,9 @@ START        END          SIZE       TYPE   SYMBOL
 0x200005f0  0x200005f3   4          B      benchmark_result
 ----------------------------------------
 
-
 The `TYPE` column comes from `arm-none-eabi-nm`. It describes how the symbol is classified in the ELF file.
 
 Common symbol types include:
-
 
 D    global initialized data
 d    local initialized data
@@ -171,14 +164,11 @@ V    weak object symbol
 
 For example:
 
-
 0x20000388 0x200003ab 36 D data
-
 
 means that the global symbol `data` lives in SRAM, starts at `0x20000388`, ends at `0x200003ab`, and occupies 36 bytes.
 
 Since the quicksort array contains 9 integers and each integer is 4 bytes:
-
 
 9 * 4 = 36 bytes
 
@@ -200,21 +190,17 @@ The checksum is still retained for automatic verification.
 
 The script profiles selected functions such as:
 
-
 swap_int
 partition
 quickSort
 print_array
 
-
 Example output:
-
 
 PROFILE_HIT=swap_int PC=0x10000332 MSP=0x20041f90 STACK_TOP=0x20042000
 PROFILE_HIT=partition PC=0x10000360 MSP=0x20041fa8 STACK_TOP=0x20042000
 PROFILE_HIT=quickSort PC=0x100003d8 MSP=0x20041fd0 STACK_TOP=0x20042000
 PROFILE_HIT=print_array PC=0x1000041e MSP=0x20041fd8 STACK_TOP=0x20042000
-
 
 This tells us where the program counter and stack pointer are when each function is reached.
 
@@ -226,19 +212,16 @@ The script estimates the active stack window from the lowest observed MSP value.
 
 Example:
 
-
 Lowest observed MSP:     0x20041f90
 Stack top estimate:      0x20042000
 Observed stack window:   0x20041f90 - 0x20041fff
 Observed stack bytes:    112
-
 
 This gives a runtime SRAM region that can be targeted later for stack-based fault injection.
 
 ## Generated Files
 
 The profiling script generates the following files:
-
 
 gdb_quicksort_profile.log
 sram_symbols_quicksort.txt
@@ -248,9 +231,7 @@ These files are generated output and are ignored by Git by default.
 
 The most important generated file is:
 
-
 target_regions_quicksort.csv
-
 
 It contains target regions that can later be used by a fault-injection script.
 
@@ -261,7 +242,6 @@ static_symbol,data,0x20000388,0x200003ab,36
 static_symbol,benchmark_done,0x200005ec,0x200005ef,4
 static_symbol,benchmark_result,0x200005f0,0x200005f3,4
 observed_stack,active_stack_window,0x20041f90,0x20041fff,112
-
 
 A future fault-injection strategy can randomly select memory locations from this file instead of injecting across the entire SRAM region.
 
@@ -277,7 +257,6 @@ Do faults in the benchmark array cause silent data corruption?
 Do faults in the stack affect control flow or computation?
 How do targeted faults compare to full-SRAM random faults?
 
-
 This profiling script prepares the information needed to answer those questions later.
 
 ## Running the Scripts
@@ -286,18 +265,13 @@ From Terminal 1:
 
 sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg
 
-
 From Terminal 2:
-
 
 ./run_quicksort.sh
 
-
 or:
 
-
 ./run_quicksort_profile.sh
-
 
 ## Troubleshooting
 
@@ -305,9 +279,7 @@ or:
 
 If a script reports that OpenOCD is not running, start OpenOCD in a separate terminal:
 
-
 sudo openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg
-
 
 Then rerun the script.
 
@@ -318,20 +290,15 @@ Run:
 chmod +x run_quicksort.sh
 chmod +x run_quicksort_profile.sh
 
-
 ### Array symbol is not found
 
 By default, the profiling script looks for an array symbol named:
 
-
 data
-
 
 If your array has a different name, run the script with:
 
-
 ARRAY_SYMBOL=my_array ./run_quicksort_profile.sh
-
 
 ### Function name mismatch
 
@@ -339,6 +306,4 @@ The script profiles functions such as `swap_int`, `partition`, `quickSort`, and 
 
 If your function names differ, override the function list:
 
-
 PROFILE_FUNCTIONS="swap_int partition quickSort print_array" ./run_quicksort_profile.sh
-
