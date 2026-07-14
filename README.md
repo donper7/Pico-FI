@@ -29,10 +29,10 @@ This project was tested using a Raspberry Pi Pico, Raspberry Pi Debug Probe, and
 
 The following tools are required:
 
-openocd
-gdb-multiarch
-arm-none-eabi-nm
-timeout
+* openocd
+* gdb-multiarch
+* arm-none-eabi-nm
+* timeout
 
 Check that they are available:
 
