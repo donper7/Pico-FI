@@ -1,4 +1,4 @@
-Pico-FI Quicksort Examples
+## Pico-FI Quicksort Examples
 
 This repository contains reproducible Raspberry Pi Pico examples using OpenOCD and `gdb-multiarch`.
 
