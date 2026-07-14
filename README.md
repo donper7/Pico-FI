@@ -17,9 +17,9 @@ Pico-FI/
 ## Hardware Requirements
 
 * Raspberry Pi Pico or another RP2040-based board
-* Raspberry Pi Debug Probe or another CMSIS-DAP compatible debug probe
-* USB connection from the host computer to the debug probe
-* USB connection from the host computer to Raspberry Pi Pico
+* Raspberry Pi Pico Debug Probe or another CMSIS-DAP compatible debug probe
+* USB connection from host computer to debug probe
+* USB connection from host computer to Raspberry Pi Pico
 * SWD connection between Raspberry Pi Pico and debug probe
 * Linux or WSL Ubuntu environment
 
