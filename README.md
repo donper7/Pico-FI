@@ -106,10 +106,10 @@ PICO_CHECKSUM=2825881671
 ----------------------------------------
 Quicksort verification
 ----------------------------------------
+
 benchmark_done:    1
 Expected checksum: 2825881671
 Observed checksum: 2825881671
-----------------------------------------
 [PASS] Quicksort completed and produced the correct checksum.
 
 The expected checksum for the current `quicksort.elf` is:
@@ -144,11 +144,11 @@ A successful profiling run should include output similar to:
 ----------------------------------------
 Static SRAM Symbols from ELF
 ----------------------------------------
+
 START        END          SIZE       TYPE   SYMBOL
 0x20000388  0x200003ab   36         D      data
 0x200005ec  0x200005ef   4          B      benchmark_done
 0x200005f0  0x200005f3   4          B      benchmark_result
-----------------------------------------
 
 The `TYPE` column comes from `arm-none-eabi-nm`. It describes how the symbol is classified in the ELF file.
 
