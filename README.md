@@ -1,8 +1,8 @@
-# Pico-FI Quicksort Examples
+Pico-FI Quicksort Examples
 
 This repository contains reproducible Raspberry Pi Pico examples using OpenOCD and `gdb-multiarch`.
 
-The current examples focus on a Quicksort benchmark running on the Raspberry Pi Pico. The first script runs and verifies the benchmark. The second script profiles the benchmark and reports useful program information that can later be used to design a targeted fault-injection strategy.
+The current examples focus on a Quicksort benchmark running on the Raspberry Pi Pico. The first script runs and verifies the benchmark. The second script profiles the benchmark and reports useful program/hardware information that can later be used to design a targeted fault-injection strategy.
 
 ## Repository Contents
 
@@ -19,6 +19,8 @@ Pico-FI/
 * Raspberry Pi Pico or another RP2040-based board
 * Raspberry Pi Debug Probe or another CMSIS-DAP compatible debug probe
 * USB connection from the host computer to the debug probe
+* USB connection from the host computer to Raspberry Pi Pico
+* SWD connection between Raspberry Pi Pico and debug probe
 * Linux or WSL Ubuntu environment
 
 This project was tested using a Raspberry Pi Pico, Raspberry Pi Debug Probe, and WSL Ubuntu.
@@ -26,7 +28,6 @@ This project was tested using a Raspberry Pi Pico, Raspberry Pi Debug Probe, and
 ## Software Dependencies
 
 The following tools are required:
-
 
 openocd
 gdb-multiarch
@@ -40,7 +41,6 @@ openocd --version
 gdb-multiarch --version
 arm-none-eabi-nm --version
 timeout --version
-
 
 This project uses `gdb-multiarch` for debugging the RP2040 target.
 
