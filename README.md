@@ -37,10 +37,10 @@ The following tools are required:
 Check that they are available:
 
 
-openocd --version
-gdb-multiarch --version
-arm-none-eabi-nm --version
-timeout --version
+* openocd --version
+* gdb-multiarch --version
+* arm-none-eabi-nm --version
+* timeout --version
 
 This project uses `gdb-multiarch` for debugging the RP2040 target.
 
