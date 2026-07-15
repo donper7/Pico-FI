@@ -14,12 +14,12 @@ Pico-FI/
 └── .gitignore
 
 ```bash
-├── Pico-FI
-│   ├── README.md
-│   ├── quicksort.elf
-│   ├── run_quicksort.sh
-│   ├── run_quicksort_profile.sh
-│   ├── .gitignore
+ Pico-FI/
+   ├── README.md
+   ├── quicksort.elf
+   ├── run_quicksort.sh
+   ├── run_quicksort_profile.sh
+   ├── .gitignore
 ```
 
 
