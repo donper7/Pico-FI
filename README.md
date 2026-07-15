@@ -21,7 +21,6 @@ Pico-FI/
 │   ├── quicksort.elf
 │   ├── run_quicksort.sh
 │   ├── run_quicksort_profile.sh
-│   |
 │   │  
 │   └── .gitignore
 ```
