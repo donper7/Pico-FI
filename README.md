@@ -6,16 +6,8 @@ The current examples focus on a Quicksort benchmark running on the Raspberry Pi 
 
 ## Repository Contents
 
-Pico-FI/
-  ├── README.md
-  ├── quicksort.elf
-  ├── run_quicksort.sh
-  ├── run_quicksort_profile.sh
-  ├── .gitignore
-
-
 ```bash
-├── Pico-FI
+├── Pico-FI/
     ├── README.md    
     ├── quicksort.elf
     ├── run_quicksort.sh
