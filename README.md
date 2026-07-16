@@ -1,7 +1,7 @@
 ## Pico-FI Quicksort Examples
 
 This repository contains reproducible Raspberry Pi Pico examples using OpenOCD and `gdb-multiarch`.
-
+Note: Mac users may use arm-none-eabi-gdb in place of gdb-multiarch.
 The current examples focus on a Quicksort benchmark running on the Raspberry Pi Pico. The first script runs and verifies the benchmark. The second script profiles the benchmark and reports useful program/hardware information that can later be used to design a targeted fault-injection strategy.
 
 ## Repository Contents

@@ -566,7 +566,7 @@ fi
 
 if [[ "${OBSERVED_DONE:-}" == "1" && "${OBSERVED_CHECKSUM:-}" == "${EXPECTED_CHECKSUM}" ]]; then
     echo "Outcome:             PASS"
-    echo "Next FI strategy:    target static symbols and observed stack window"
+    echo "FI strategy:    target static symbols and observed stack window"
     exit 0
 elif [[ "${OBSERVED_DONE:-}" == "1" ]]; then
     echo "Outcome:             CHECKSUM_MISMATCH"
